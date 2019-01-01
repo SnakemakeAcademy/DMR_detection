@@ -1,0 +1,3 @@
+bismark_report: ../s2_meth_extract/
+fai: reference.fa.fai 
+comparison_list: DMR_cmp_list.txt 
