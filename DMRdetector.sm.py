@@ -11,7 +11,8 @@ DIR_WINMETH = "s2_winmeth/"
 
 ############################## DMR comparison
 cmp=config["comparison_list"]
-DMR_TEST="s3_mer_win/";
+DMR_TEST="s3_mer_win/"
+DMR_TAB ="s4_DMR_tab/"
 #if not DIR_BISREP:
 dict_cmp_CG = dict()
 dict_cmp_CHG = dict()
@@ -35,7 +36,10 @@ rule all:
         expand(DIR_WINMETH + "win_meth_{sample}.done", sample=SAMPLE),
         expand(DMR_TEST + "win_{comparison}.{context}.tab", comparison=list(dict_cmp_CG), context = ["CG", "CHG", "CHH"]),
         expand(DMR_TEST + "win_{comparison}.{context}.fisher", comparison=list(dict_cmp_CG), context = ["CG", "CHG", "CHH"]),
-        expand(DMR_TEST + "win_{comparison}.{context}.fil", comparison=list(dict_cmp_CG), context = ["CG", "CHG", "CHH"])
+        expand(DMR_TEST + "win_{comparison}.{context}.fil", comparison=list(dict_cmp_CG), context = ["CG", "CHG", "CHH"]),
+        expand(DMR_TAB + "DMR_{comparison}.{context}.tab", comparison=list(dict_cmp_CG), context = ["CG", "CHG", "CHH"]),
+        expand(DMR_TAB + "DMR_{comparison}.{context}.meth.tab", comparison=list(dict_cmp_CG), context = ["CG", "CHG", "CHH"]),
+
 rule tabix:
     input:
         DIR_RAW + "{sample}.bis_rep.cov.CX_report.txt" 
@@ -63,7 +67,7 @@ python scripts/gener_tab4DMR.py -i {input.tab} -f {input.fai} -w 200 -s 200 -d 1
 touch {output}
 '''
 
-rule tab3DMR_test:
+rule DMR_test:
     """
     Merge windows 
     """
@@ -84,7 +88,6 @@ rule tab3DMR_test:
         CG_fil=DMR_TEST + "win_{comparison}.CG.fil",
         CHG_fil=DMR_TEST + "win_{comparison}.CHG.fil",
         CHH_fil=DMR_TEST + "win_{comparison}.CHH.fil",
-        CG_fil=DMR_TEST + "win_{comparison}.CG.fil",
     shell:
         r'''
 python scripts//mer_win_lap4DMR.py -i {params.CG} -d {params.depth} -o {output.CG}
@@ -118,17 +121,17 @@ rule DMR_res:
     params:
         meth_tab = lambda wildcards: dict_meth_tab[wildcards.comparison]
     output: 
-        CG=DMR_TEST + "DMR_{comparison}.CG.tab",
-        CHG=DMR_TEST + "DMR_{comparison}.CHG.tab",
-        CHH=DMR_TEST + "DMR_{comparison}.CHH.tab",
-        CG_meth=DMR_TEST + "DMR_{comparison}.CG.meth.tab",
-        CHG_meth=DMR_TEST + "DMR_{comparison}.CHG.meth.tab",
-        CHH_meth=DMR_TEST + "DMR_{comparison}.CHH.meth.tab",
+        CG=DMR_TAB + "DMR_{comparison}.CG.tab",
+        CHG=DMR_TAB + "DMR_{comparison}.CHG.tab",
+        CHH=DMR_TAB + "DMR_{comparison}.CHH.tab",
+        CG_meth=DMR_TAB + "DMR_{comparison}.CG.meth.tab",
+        CHG_meth=DMR_TAB + "DMR_{comparison}.CHG.meth.tab",
+        CHH_meth=DMR_TAB + "DMR_{comparison}.CHH.meth.tab",
     shell:
         '''
-mergeBed -d 1 -i {inpout.CG} > {output.CG}
-mergeBed -d 1 -i {inpout.CHG} > {output.CHG}
-mergeBed -d 1 -i {inpout.CHH} > {output.CHH}
+sort -k1,1 -k2,2n -k3,3n {input.CG} |mergeBed -d 1 -i - > {output.CG}
+sort -k1,1 -k2,2n -k3,3n {input.CHG} |mergeBed -d 1 -i - > {output.CHG}
+sort -k1,1 -k2,2n -k3,3n {input.CHH} |mergeBed -d 1 -i - > {output.CHH}
 python scripts/extract_meth_lev4DMR.py --dmr {output.CG} -t {params.meth_tab} -c CG --methdiff 0.4 > {output.CG_meth}
 python scripts/extract_meth_lev4DMR.py --dmr {output.CHG} -t {params.meth_tab} -c CHG --methdiff 0.4 > {output.CHG_meth}
 python scripts/extract_meth_lev4DMR.py --dmr {output.CHH} -t {params.meth_tab} -c CHH --methdiff 0.4 > {output.CHH_meth}
